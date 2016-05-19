@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 title: "Reproducible Research Assignment 1"
 author: "Kristyn Miller"
 date: "19 May 2016"
@@ -180,3 +181,29 @@ xyplot(Steps~Interval|Day,data=MeanSteps,type="l",
 ```
 
 This plot shows that activity is generally higher on weekdays, than weekends. 
+=======
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+
+
+
+## What is mean total number of steps taken per day?
+
+
+
+## What is the average daily activity pattern?
+
+
+
+## Imputing missing values
+
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+>>>>>>> 80edf39c3bb508fee88e3394542f967dd3fd3270
