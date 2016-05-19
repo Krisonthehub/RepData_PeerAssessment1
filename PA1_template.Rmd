@@ -1,0 +1,182 @@
+---
+title: "Reproducible Research Assignment 1"
+author: "Kristyn Miller"
+date: "19 May 2016"
+output: html_document
+---
+
+This is an R Markdown document explaining the analysis of data from a personal activity monitoring device. This data was collected at 5 minute intervals, during the months of October and November 2012 and include the number of steps taken, per 5 minute interval, by an anonymous individual. 
+
+The analysis was conducted in R using the base, ggplot2, lattice and dplyr packages. 
+
+The data for this analysis was obtained from Github on 24 March 2016 and can be found here:
+[Activity Data](https://github.com/rdpeng/RepData_PeerAssessment1). It consist of 17568 observations of 3 variables. The variables, in order, are:  
+1. steps (the number of steps taken);  
+2. date (the date the steps were recorded); and  
+3. interval (the 5-minute, time interval the steps were recorded in)  
+
+##Analysis 1##
+The first analysis exerise conducted on this data sought to calculate the total number of steps taken per day and plot this against the mean and median number of steps. 
+
+The data was saved locally and read into R as a csv, omitting NA values thus:
+
+```{r, echo=TRUE}
+actData<-read.csv("activity.csv", head=TRUE)
+actData2<-na.omit(actData)
+```
+
+The first analysis exercise sought to calculate the number of steps taken per day and to plot this calculation using a histogram. It required calculation of the mean and median number of steps taken over the period of time recorded. 
+
+In order to create a vector containing the number of steps taken per day, the total steps were cross tabulated by date. The result was then converted into a dataframe and the columns renamed to make them more meaningful:
+
+```{r, echo=TRUE}
+xt<-xtabs(steps ~ date, data=actData2)
+##convert to dataframe
+xt<-as.data.frame(xt) 
+##rename columns to make more meaningful
+colnames(xt)<-c("Date", "Steps")
+```
+
+The xtabs() function generated a two-column dataframe, where column 1 lists the dates and column two listed the number of steps taken on that date.  
+
+The mean and median were calculated:
+
+```{r, echo=TRUE}
+Mean<-mean(xt$Steps)
+Median<-median(xt$Steps)
+```
+
+With the resultant answers being: mean = 9354 and median = 10395.  
+
+The hist() function from the base R package was then used to plot the total number of steps per day as a histogram.  
+
+The figures for the mean and median were then plotted onto the chart as vertical ablines, colour-coded and represented in an appropriate legend:
+
+```{r, echo=TRUE}
+hist(xt$Steps, breaks=61, main="Total Number of Steps Taken Per Day", 
+     xlab="Number of Steps", col="Blue")
+abline(v = c(mean(xt$Steps), median(xt$Steps)), lty = c(1,2), lwd =3, 
+       col=c("red", "green"))
+legend("topright", legend=c("Mean Steps (9354)", "Median Steps (10395)"),
+                            lty=c(1,2), col=c("red", "green"))
+```
+
+
+##Analysis 2##
+The second analysis exercise sought to determine which 5-minute interval, on average across all the days in the dataset, contained the maximum number of steps.  
+
+Using the actData2 dataframe, the tapply() function was used to calculate the mean number of steps taken in each time interval measured. The resulting dataframe contained only one column, so a subset of actData2 was taken to create a second column of the time intervals. The two objects were then bound together using the rbind() function, and the columns named to be more meaningful:
+
+```{r, echo=TRUE}
+x2<-as.data.frame(tapply(actData2$steps, actData2$interval, 
+                         mean, na.rm=TRUE))
+intervals<-subset(actData2, !duplicated(interval))
+x2<-cbind(x2, intervals$interval)
+colnames(x2)<-c("Mean", "Interval")
+```
+
+The ggplot2 package is required to conduct the plotting activity below, so that was first opened. Then the Interval and Mean from x2 were plotted using ggplot().  
+In order to make the plot easier to read, the interval area with the highest values were focused on using the coord_cartesian() function:
+
+```{r, echo -TRUE}
+##open ggplot2
+library(ggplot2)
+##plot all intervals
+ggplot(x2, aes(Interval, Mean, group=1)) +geom_line() +
+  ggtitle("Average Number of Steps Per Time Interval") +
+  xlab("Intervals") + ylab("Mean Number of Steps") +
+##zoom into smaller range with highest values  
+  coord_cartesian(xlim=c(750, 950))
+
+```
+
+It can be seen that the highest mean number of steps were taken during a time interval between 825 and 850. The following code was used to determine that it was time interval 835:
+
+```{r, echo = TRUE}
+m<-which.max(x2[,1])
+m
+```
+
+##Analysis 3##
+In this analysis exercise missing values, represented by 'NA' have been imputed using the mean value for the time interval in which they appear. This new dataset is then used to recalulate daily totals, mean and median values for the number of steps taken. 
+
+First, the number of missing values is calculated:
+
+```{r, echo=TRUE}
+sum(is.na(actData))
+```
+
+Then a second dataset, wihtout NA values, was created in order to calculate the mean number of steps, per time interval:
+
+```{r, echo=TRUE}
+actData2<-na.omit(actData)
+#calculate mean by interval without NAs
+Means<-as.data.frame(tapply(actData2$steps, actData2$interval, 
+                            mean, na.rm=TRUE))
+#create a dataset of unique intervals and bind with Means to show mean by interval
+intervals<-subset(actData2, !duplicated(interval))
+x1<-cbind(Means, intervals$interval)
+colnames(x1)<-c("mean1", "interval")
+```
+
+The mean value of steps (per interval) from dataset x1 was then used to replace the NA values in the actData dataset:
+
+```{r, echo=TRUE}
+actData$steps[is.na(actData$steps)]<-x1$mean1[match(actData$interval[is.na(actData$steps)], x1$interval)]
+```
+
+Using this new clean dataset the total number of steps per day and mean and median number of steps per day were recalculated and plotted on a histogram:
+
+```{r, echo=TRUE}
+xt<-xtabs(steps ~ date, data=actData)
+##convert to dataframe
+xt<-as.data.frame(xt) 
+##rename columns to make more meaningful
+colnames(xt)<-c("Date", "Steps")
+
+##Make a histogram of the total number of steps taken each day
+hist(xt$Steps, breaks=61, main="Total Number of Steps Taken Per Day", 
+     xlab="Number of Steps", col="Blue")
+
+##Calculate and report the mean and median
+Mean<-mean(xt$Steps)
+Median<-median(xt$Steps)
+abline(v = c(mean(xt$Steps), median(xt$Steps)), lty = c(1,2), lwd =3, 
+       col=c("red", "green"))
+legend("topright", legend=c("Mean (10766)", "Median (10766)"),
+       lty=c(1,2), col=c("red", "green"))
+```
+
+The result of imputing the missing NA values in this data is that the mean number of steps taken per day increases from 9354 to 10766 and the median number of steps increases slighty from 10385 to 10766.  
+
+##Analysis 4##
+
+In this final analysis exercise, a comparison was conducted of the mean number of steps taken, per time interval, on weekdays and weekends. 
+
+First the activity data was read into a new dataset and a new column was created which contained the day of the week associated with each of the provided dates:
+
+```{r, echo=TRUE}
+actData3<-actData
+actData3$day <- weekdays(as.Date(actData3$date))
+actData3$day<-gsub("Saturday|Sunday", "Weekend", actData3$day)
+actData3$day<-gsub("Monday|Tuesday|Wednesday|Thursday|Friday", "Weekday", 
+                   actData3$day)
+```
+
+Then a new dataset was created which calculated the mean number of steps taken per time interval and per day type (weekend or weekday). The columns were renamed to make them more meaningful:
+
+```{r, echo=TRUE}
+MeanSteps<-as.data.frame(xtabs(steps ~ interval + day, data=actData3))
+colnames(MeanSteps)<-c("Interval", "Day","Steps")
+```
+
+Then a plot was created using the Lattice package, which plotted the average number of steps on weekdays and weekends in separate trellis for comparison:
+
+```{r, echo=TRUE}
+library(lattice)
+xyplot(Steps~Interval|Day,data=MeanSteps,type="l", 
+       main="Average Steps by Time Interval and Day",layout=c(1,2),
+       scales=list(y=list(at=c(2000,4000,6000,8000), labels=c(20,40,60,80))))  
+```
+
+This plot shows that activity is generally higher on weekdays, than weekends. 
